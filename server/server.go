@@ -1,15 +1,64 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
-	"log"
-	"net/http"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
-func index(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "안녕하세요! %s에 오신걸 환영 ", r.URL.Path[1:])
+const (
+	host     = "teamdiary.ciszsojgfruj.ap-northeast-2.rds.amazonaws.com"
+	database = "pl2h"
+	user     = "admin"
+	password = "diary1234"
+)
+
+func checkError(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
+
 func main() {
-	http.HandleFunc("/", index)
-	log.Fatal(http.ListenAndServe(":3000", nil))
+
+	// Initialize connection string.
+	var connectionString = fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?allowNativePasswords=true", user, password, host, database)
+
+	// Initialize connection object.
+	db, err := sql.Open("mysql", connectionString)
+	checkError(err)
+	defer db.Close()
+
+	err = db.Ping()
+	checkError(err)
+	fmt.Println("Successfully created connection to database.")
+
+	// Drop previous table of same name if one exists.
+	_, err = db.Exec("DROP TABLE IF EXISTS inventory;")
+	checkError(err)
+	fmt.Println("Finished dropping table (if existed).")
+
+	// Create table.
+	_, err = db.Exec("CREATE TABLE inventory (id serial PRIMARY KEY, name VARCHAR(50), quantity INTEGER);")
+	checkError(err)
+	fmt.Println("Finished creating table.")
+
+	// Insert some data into table.
+	sqlStatement, err := db.Prepare("INSERT INTO inventory (name, quantity) VALUES (?, ?);")
+	res, err := sqlStatement.Exec("살려줘ㅇㅁㅇㅁㅇㅁㅇㅇㅁ", 150)
+	checkError(err)
+	rowCount, err := res.RowsAffected()
+	fmt.Printf("Inserted %d row(s) of data.\n", rowCount)
+
+	res, err = sqlStatement.Exec("집에 보내줘ㅇㅁㅇㅁㅇㅁㅇ", 154)
+	checkError(err)
+	rowCount, err = res.RowsAffected()
+	fmt.Printf("Inserted %d row(s) of data.\n", rowCount)
+
+	res, err = sqlStatement.Exec("apple", 100)
+	checkError(err)
+	rowCount, err = res.RowsAffected()
+	fmt.Printf("Inserted %d row(s) of data.\n", rowCount)
+	fmt.Println("Done.")
 }
